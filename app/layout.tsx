@@ -1,8 +1,9 @@
 'use client'
 
-import { Bell } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Inter } from 'next/font/google';
-import React from 'react';
+import { usePathname } from 'next/navigation';
+import React, { useState } from 'react';
 import Sidebar from '../components/layout/Sidebar';
 import ProfileModal from '../components/ProfileModal';
 import ProjectModal from '../components/projects/ProjectModal';
@@ -13,6 +14,10 @@ const inter = Inter({ subsets: ['latin'] });
 
 // Separate Layout to use Hooks from Context
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isFullPage = pathname === '/' || pathname === '/auth';
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const {
     toasts,
     isProjectModalOpen, setIsProjectModalOpen,
@@ -20,7 +25,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   } = useApp();
 
   return (
-    <div className={`flex h-screen w-full bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200`}>
+    <div className={`flex w-full font-sans transition-colors duration-200 
+      ${isFullPage ? 'bg-slate-950 min-h-screen' : 'bg-gray-50 dark:bg-slate-950 h-screen text-gray-900 dark:text-gray-100'}`}>
+
       {/* TOASTS */}
       <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
@@ -32,18 +39,47 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         ))}
       </div>
 
-      {/* Global Modals */}
-      <ProjectModal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} projectToEdit={null} />
-      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      {!isFullPage && (
+        <>
+          {/* Global Modals */}
+          <ProjectModal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} projectToEdit={null} />
+          <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
 
-      <Sidebar onOpenProjectModal={() => setIsProjectModalOpen(true)} onOpenProfileModal={() => setIsProfileModalOpen(true)} />
+          <Sidebar 
+            onOpenProjectModal={() => setIsProjectModalOpen(true)} 
+            onOpenProfileModal={() => setIsProfileModalOpen(true)}
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+          />
+        </>
+      )}
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative transition-all">
+      <main className={`flex-1 flex flex-col relative transition-all ${isFullPage ? '' : 'h-full overflow-hidden'}`}>
+        {!isFullPage && (
+          <div className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 z-50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                J
+              </div>
+              <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Juggler</span>
+            </div>
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
+        )}
         {children}
       </main>
     </div>
   )
 }
+
+
+
+import { SessionProvider } from 'next-auth/react';
 
 export default function RootLayout({
   children,
@@ -53,12 +89,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AppProvider>
-          <AppLayoutInner>
-            {children}
-          </AppLayoutInner>
-        </AppProvider>
+        <SessionProvider>
+          <AppProvider>
+            <AppLayoutInner>
+              {children}
+            </AppLayoutInner>
+          </AppProvider>
+        </SessionProvider>
       </body>
     </html>
   )
 }
+

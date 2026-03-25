@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  username      String?   @unique
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  avatar_color  String?   @default("bg-blue-500") @db.VarChar(50)
+  
+  accounts      Account[]
+  sessions      Session[]
+
+  // App Relations
+  projects          Project[]
+  memberships       ProjectMember[]
+  actions           MembershipHistory[] @relation("actor")
+  membershipChanges MembershipHistory[] @relation("subject")
+  comments          TaskComment[]
+  historyChanges    TaskHistory[]
+  
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Project {
+  p_id         Int       @id @default(autoincrement())
+  u_id         String    // Creator ID
+  name         String    @db.VarChar(255)
+  description  String?   @db.Text
+  deadline     DateTime? @db.Date
+  created_at   DateTime? @default(now()) @db.Timestamp(0)
+  updated_at   DateTime? @default(now()) @updatedAt @db.Timestamp(0)
+  is_deleted   Boolean   @default(false)
+  is_archived  Boolean   @default(false)
+
+  // Relations
+  creator           User                @relation(fields: [u_id], references: [id], onDelete: Cascade)
+  members           ProjectMember[]
+  tasks             Task[]
+  taskHistories     TaskHistory[]
+  membershipHistory MembershipHistory[]
+
+  @@index([u_id])
+}
+
+model ProjectMember {
+  p_id Int
+  u_id String
+  role Role
+
+  // Relations
+  project Project @relation(fields: [p_id], references: [p_id], onDelete: Cascade)
+  user    User    @relation(fields: [u_id], references: [id], onDelete: Cascade)
+
+  @@id([p_id, u_id])
+  @@index([u_id])
+}
+
+enum Role {
+  OWNER
+  MEMBER
+}
+
+model MembershipHistory {
+  mh_id       Int              @id @default(autoincrement())
+  p_id        Int
+  u_id        String           // Subject user
+  changed_by  String           // Actor user
+  action_type MembershipAction
+  old_role    Role?
+  new_role    Role?
+  created_at  DateTime?        @default(now()) @db.Timestamp(0)
+
+  // Relations
+  project Project @relation(fields: [p_id], references: [p_id])
+  user    User    @relation("subject", fields: [u_id], references: [id])
+  actor   User    @relation("actor", fields: [changed_by], references: [id])
+
+  @@index([p_id])
+  @@index([u_id])
+  @@index([changed_by])
+}
+
+enum MembershipAction {
+  ADDED
+  REMOVED
+  ROLE_CHANGED
+}
+
+model Task {
+  t_id           Int          @id @default(autoincrement())
+  p_id           Int
+  parent_task_id Int?
+  name           String       @db.VarChar(255)
+  description    String?      @db.Text
+  position       Int
+  status         TaskStatus   @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  to_do_date     DateTime?    @db.Date
+  deadline       DateTime?    @db.Date
+  start_time     String?      @db.VarChar(5)
+  end_time       String?      @db.VarChar(5)
+  created_at     DateTime?    @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?    @default(now()) @updatedAt @db.Timestamp(0)
+  is_deleted     Boolean      @default(false)
+
+  // Relations
+  project  Project       @relation(fields: [p_id], references: [p_id], onDelete: Cascade)
+  parent   Task?         @relation("SubTasks", fields: [parent_task_id], references: [t_id], onDelete: Cascade)
+  subtasks Task[]        @relation("SubTasks")
+  history  TaskHistory[]
+  comments TaskComment[]
+
+  @@index([p_id])
+  @@index([parent_task_id])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model TaskHistory {
+  history_id  Int       @id @default(autoincrement())
+  t_id        Int
+  p_id        Int
+  changed_by  String
+  action_type String    @db.VarChar(50)
+  old_value   String?   @db.Text
+  new_value   String?   @db.Text
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+
+  // Relations
+  task    Task    @relation(fields: [t_id], references: [t_id], onDelete: Cascade)
+  project Project @relation(fields: [p_id], references: [p_id], onDelete: Cascade)
+  user    User    @relation(fields: [changed_by], references: [id], onDelete: Cascade)
+
+  @@index([t_id])
+  @@index([p_id])
+  @@index([changed_by])
+}
+
+model TaskComment {
+  comment_id   Int       @id @default(autoincrement())
+  t_id         Int
+  u_id         String
+  comment_text String    @db.Text
+  created_at   DateTime? @default(now()) @db.Timestamp(0)
+  updated_at   DateTime? @db.Timestamp(0)
+  is_deleted   Boolean   @default(false)
+
+  // Relations
+  task Task @relation(fields: [t_id], references: [t_id], onDelete: Cascade)
+  user User @relation(fields: [u_id], references: [id], onDelete: Cascade)
+
+  @@index([t_id])
+  @@index([u_id])
+}

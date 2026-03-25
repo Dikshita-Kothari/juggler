@@ -40,9 +40,9 @@ export default function ListView({
     }, [tasks]);
 
     return (
-        <div className="p-6">
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
-                <table className="w-full text-left border-collapse">
+        <div className="p-4 sm:p-6 h-full overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 overflow-auto h-full">
+                <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                         <tr className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-800 text-xs text-gray-500 font-semibold uppercase tracking-wider">
                             <th className="p-4 pl-6">Task Name</th>

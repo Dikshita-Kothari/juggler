@@ -5,27 +5,44 @@ export type ViewMode = 'BOARD' | 'LIST' | 'CALENDAR' | 'PRIORITY' | 'TIMELINE';
 export type TimelineScale = 'MONTH' | 'WEEK' | 'DAY';
 
 export interface User {
-    u_id: number;
-    name: string;
-    username: string;
-    email: string;
-    avatar_color: string;
+    id: string; // Changed from u_id (number) to id (string) for NextAuth compatibility
+    name?: string | null;
+    username?: string | null;
+    email?: string | null;
+    emailVerified?: string | null;
+    image?: string | null;
+    avatar_color?: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface Project {
     p_id: number;
-    u_id: number; // Creator
+    u_id: string; // Updated to String ID
     name: string;
     description: string;
     deadline: string;
     created_at: string;
+    updated_at?: string;
     is_deleted: boolean;
+    is_archived: boolean;
 }
 
 export interface ProjectMember {
     p_id: number;
-    u_id: number;
+    u_id: string;
     role: Role;
+}
+
+export interface MembershipHistory {
+    mh_id: number;
+    p_id: number;
+    u_id: string;
+    changed_by: string;
+    action_type: 'ADDED' | 'REMOVED' | 'ROLE_CHANGED';
+    old_role: Role | null;
+    new_role: Role | null;
+    created_at: string;
 }
 
 export interface Task {
@@ -39,6 +56,8 @@ export interface Task {
     priority: Priority;
     to_do_date: string;
     deadline: string;
+    start_time?: string; // e.g. "09:00"
+    end_time?: string;   // e.g. "10:30"
     created_at: string;
     updated_at: string;
     is_deleted: boolean;
@@ -47,15 +66,18 @@ export interface Task {
 export interface TaskComment {
     comment_id: number;
     t_id: number;
-    u_id: number;
+    u_id: string;
     comment_text: string;
     created_at: string;
+    updated_at?: string;
+    is_deleted?: boolean;
 }
 
 export interface TaskHistory {
     history_id: number;
     t_id: number;
-    changed_by: number;
+    p_id: number;
+    changed_by: string;
     action_type: string;
     old_value: string | null;
     new_value: string | null;

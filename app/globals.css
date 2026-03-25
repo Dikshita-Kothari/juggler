@@ -10,6 +10,6 @@
 
 /* Ensure the transition applies to the background color change */
 html {
-  font-size: 20px;
+  font-size: 16px;
   transition: background-color 0.2s, color 0.2s;
 }

@@ -48,37 +48,40 @@ export default function CalendarView({
     };
 
     return (
-        <div className="flex h-full">
+        <div className="flex flex-col lg:flex-row h-full overflow-hidden">
             {/* Left: Calendar Grid */}
-            <div className="flex-1 flex flex-col p-6 pr-0 overflow-hidden">
-                <div className="flex items-center justify-between mb-6 pr-6">
+            <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden min-h-[400px]">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
                     <div className="flex items-center gap-4">
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                             {currentCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                         </h3>
-                        <div className="flex bg-white dark:bg-slate-800 rounded-md border border-gray-200 dark:border-slate-700">
-                            <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 border-r border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white"><ChevronLeft size={16} /></button>
-                            <button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-900 dark:text-white"><ChevronRight size={16} /></button>
+                        <div className="flex bg-white dark:bg-slate-800 rounded-md border border-gray-200 dark:border-slate-800">
+                            <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 border-r border-gray-200 dark:border-slate-800 text-gray-900 dark:text-white transition-colors"><ChevronLeft size={16} /></button>
+                            <button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-900 dark:text-white transition-colors"><ChevronRight size={16} /></button>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden flex flex-col">
-                    <div className="grid grid-cols-7 border-b border-gray-200 dark:border-slate-800">
+                <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-y-auto flex flex-col scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-800">
+                    <div className="grid grid-cols-7 border-b border-gray-200 dark:border-slate-800 sticky top-0 z-20 bg-white dark:bg-slate-900">
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <div key={day} className="p-3 text-center text-xs font-semibold text-gray-500 uppercase">{day}</div>
+                            <div key={day} className="p-2 sm:p-3 text-center text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest">{day}</div>
                         ))}
                     </div>
-                    <div className="flex-1 grid grid-cols-7 auto-rows-fr">
+                    <div className="flex-1 grid grid-cols-7 auto-rows-fr min-h-fit">
+                        {/* ... cells remain same ... */}
                         {(() => {
                             const { days, firstDay, year, month } = getDaysInMonth(currentCalendarDate);
                             const cells = [];
+                            // Previous month empty cells
                             for (let i = 0; i < firstDay; i++) {
-                                cells.push(<div key={`empty-${i}`} className="border-r border-b border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/50"></div>);
+                                cells.push(<div key={`empty-${i}`} className="border-r border-b border-gray-100 dark:border-slate-800/50 bg-gray-50/20 dark:bg-slate-900/40"></div>);
                             }
+                            // Month days
                             for (let d = 1; d <= days; d++) {
                                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                                const dayTasks = tasks.filter(t => t.deadline === dateStr);
+                                const dayTasks = tasks.filter(t => t.deadline?.split('T')[0] === dateStr);
                                 const isToday = new Date().toDateString() === new Date(year, month, d).toDateString();
                                 const isSelected = selectedDay.toDateString() === new Date(year, month, d).toDateString();
 
@@ -86,24 +89,24 @@ export default function CalendarView({
                                     <div
                                         key={d}
                                         onClick={() => setSelectedDay(new Date(year, month, d))}
-                                        className={`border-r border-b border-gray-100 dark:border-slate-800 p-2 min-h-[100px] cursor-pointer transition-colors relative flex flex-col
-                                        ${isSelected ? 'bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10' : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'}
-                                        ${isToday && !isSelected ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}`}
+                                        className={`border-r border-b border-gray-100 dark:border-slate-800 p-1 sm:p-2 min-h-[60px] sm:min-h-[80px] cursor-pointer transition-all relative flex flex-col group
+                                        ${isSelected ? 'bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-inset ring-blue-500 z-10' : 'hover:bg-gray-50/80 dark:hover:bg-slate-800/80'}
+                                        ${isToday && !isSelected ? 'bg-blue-50/20 dark:bg-blue-900/10' : ''}`}
                                     >
                                         <div className="flex justify-between items-start mb-1">
-                                            <div className={`text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full 
-                                            ${isToday ? 'bg-blue-600 text-white' : isSelected ? 'text-blue-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                                            <div className={`text-xs sm:text-sm font-black w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full transition-colors
+                                            ${isToday ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : isSelected ? 'text-blue-600 font-black' : 'text-gray-900 dark:text-gray-100'}`}>
                                                 {d}
                                             </div>
                                         </div>
 
                                         <div className="flex-1 flex items-center justify-center">
                                             {dayTasks.length > 0 && (
-                                                <div className="flex flex-col items-center">
-                                                    <div className={`text-xl font-bold ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                                                <div className="flex flex-col items-center animate-in fade-in zoom-in duration-200">
+                                                    <div className={`text-xl sm:text-2xl font-black ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
                                                         {dayTasks.length}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-400 uppercase font-medium tracking-wider">
+                                                    <div className="text-[8px] sm:text-[10px] text-gray-400 uppercase font-bold tracking-tighter">
                                                         {dayTasks.length === 1 ? 'Task' : 'Tasks'}
                                                     </div>
                                                 </div>
@@ -112,6 +115,14 @@ export default function CalendarView({
                                     </div>
                                 );
                             }
+
+                            // Fill remaining cells to maintain grid structure (up to 42 for 6 rows)
+                            const totalCells = firstDay + days;
+                            const remaining = totalCells > 35 ? 42 - totalCells : 35 - totalCells;
+                            for (let i = 0; i < remaining; i++) {
+                                cells.push(<div key={`empty-end-${i}`} className="border-r border-b border-gray-100 dark:border-slate-800/50 bg-gray-50/20 dark:bg-slate-900/40"></div>);
+                            }
+
                             return cells;
                         })()}
                     </div>
@@ -119,7 +130,7 @@ export default function CalendarView({
             </div>
 
             {/* Right: Day Detail Panel */}
-            <div className="w-72 my-6 mr-6 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden shrink-0">
+            <div className="w-full lg:w-80 lg:my-6 lg:mr-6 lg:ml-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-200 dark:border-slate-800 flex flex-col overflow-hidden shrink-0 transition-all max-h-[50vh] lg:max-h-none">
                 <div className="p-6 border-b border-gray-200 dark:border-slate-800">
                     <div className="text-lg font-bold mb-1 text-gray-900 dark:text-white">
                         {selectedDay.toLocaleDateString(undefined, { weekday: 'long' })}
@@ -130,7 +141,7 @@ export default function CalendarView({
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    {tasks.filter(t => t.deadline === formatDate(selectedDay)).map(t => (
+                    {tasks.filter(t => t.deadline?.split('T')[0] === formatDate(selectedDay)).map(t => (
                         <div
                             key={t.t_id}
                             onClick={() => onTaskClick(t)}
@@ -157,7 +168,7 @@ export default function CalendarView({
                         </div>
                     ))}
 
-                    {tasks.filter(t => t.deadline === formatDate(selectedDay)).length === 0 && (
+                    {tasks.filter(t => t.deadline?.split('T')[0] === formatDate(selectedDay)).length === 0 && (
                         <div className="text-center py-8 text-gray-400 dark:text-slate-600 text-sm italic">
                             No tasks for this day
                         </div>

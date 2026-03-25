@@ -112,7 +112,7 @@ export function KanbanColumn({ title, status, tasks, allTasks, onTaskClick, onDr
 export default function KanbanView({ tasks, onTaskClick, onUpdateTask, onDeleteTask }: {
     tasks: Task[],
     onTaskClick: (t: Task) => void,
-    onUpdateTask: (id: number, status: TaskStatus) => void,
+    onUpdateTask: (id: number, updates: Partial<Task>) => void,
     onDeleteTask: (id: number) => void
 }) {
     const todoTasks = tasks.filter(t => t.status === 'TODO');
@@ -127,7 +127,7 @@ export default function KanbanView({ tasks, onTaskClick, onUpdateTask, onDeleteT
                 tasks={todoTasks}
                 allTasks={tasks}
                 onTaskClick={onTaskClick}
-                onDrop={(id) => onUpdateTask(id, 'TODO')}
+                onDrop={(id) => onUpdateTask(id, { status: 'TODO' })}
                 onDelete={onDeleteTask}
             />
             <KanbanColumn
@@ -136,7 +136,7 @@ export default function KanbanView({ tasks, onTaskClick, onUpdateTask, onDeleteT
                 tasks={inProgressTasks}
                 allTasks={tasks}
                 onTaskClick={onTaskClick}
-                onDrop={(id) => onUpdateTask(id, 'IN_PROGRESS')}
+                onDrop={(id) => onUpdateTask(id, { status: 'IN_PROGRESS' })}
                 onDelete={onDeleteTask}
             />
             <KanbanColumn
@@ -145,7 +145,7 @@ export default function KanbanView({ tasks, onTaskClick, onUpdateTask, onDeleteT
                 tasks={doneTasks}
                 allTasks={tasks}
                 onTaskClick={onTaskClick}
-                onDrop={(id) => onUpdateTask(id, 'DONE')}
+                onDrop={(id) => onUpdateTask(id, { status: 'DONE' })}
                 onDelete={onDeleteTask}
             />
         </div>

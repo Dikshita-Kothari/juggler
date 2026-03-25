@@ -47,6 +47,8 @@ export default function TimelineView({ tasks, onTaskClick, onDeleteTask, onUpdat
     const inboxTasks = tasks.filter(t => !t.deadline && !t.is_deleted);
     const scheduledTasks = tasks.filter(t => t.deadline && !t.is_deleted);
 
+    const [dropIndicator, setDropIndicator] = useState<{ top: number, time: string } | null>(null);
+
     const changeMonth = (delta: number) => {
         const newDate = new Date(currentCalendarDate);
         newDate.setMonth(newDate.getMonth() + delta);
@@ -73,33 +75,54 @@ export default function TimelineView({ tasks, onTaskClick, onDeleteTask, onUpdat
         e.preventDefault();
     }
 
+    const handleDragOverGrid = (e: React.DragEvent) => {
+        e.preventDefault();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const hour = Math.floor(y / 80);
+        const minute = Math.floor(((y % 80) / 80) * 60);
+        const snappedMinute = Math.round(minute / 15) * 15;
+
+        const top = (hour * 80) + (snappedMinute / 60 * 80);
+        const timeStr = `${String(hour % 24).padStart(2, '0')}:${String(snappedMinute % 60).padStart(2, '0')}`;
+
+        setDropIndicator({ top, time: timeStr });
+    }
+
     const handleDropOnInbox = (e: React.DragEvent) => {
         const t_id = Number(e.dataTransfer.getData("t_id"));
         if (!t_id) return;
         onUpdateTask(t_id, { deadline: "" });
+        setDropIndicator(null);
     }
 
     const handleDropOnDate = (e: React.DragEvent, dateStr: string) => {
         const t_id = Number(e.dataTransfer.getData("t_id"));
         if (!t_id) return;
         onUpdateTask(t_id, { deadline: dateStr });
+        setDropIndicator(null);
     }
 
     return (
-        <div className="flex h-full overflow-hidden">
-            {/* INBOX SIDEBAR - FOR PLANNING */}
+        <div className="flex h-full overflow-hidden relative" onDragLeave={() => setDropIndicator(null)}>
+            {/* INBOX SIDEBAR - FOR PLANNING - Responsive */}
             {showInbox && (
-                <div
-                    className="w-80 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 animate-in slide-in-from-left duration-200"
-                    onDragOver={handleDragOver}
-                    onDrop={handleDropOnInbox}
-                >
+                <>
+                    {/* Mobile Overlay for Inbox */}
+                    <div 
+                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[55] lg:hidden"
+                        onClick={onToggleInbox}
+                    />
+                    <div
+                        className="fixed inset-y-0 left-0 lg:relative z-[60] lg:z-0 w-72 sm:w-80 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 animate-in slide-in-from-left duration-200 shadow-2xl lg:shadow-none"
+                        onDragOver={handleDragOver}
+                        onDrop={handleDropOnInbox}
+                    >
                     <div className="p-4 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center bg-purple-50/50 dark:bg-purple-900/10">
                         <div className="flex items-center gap-2 font-bold text-purple-800 dark:text-purple-300">
                             <Inbox size={18} /> Backlog / Inbox
                         </div>
                         {onToggleInbox && <button onClick={onToggleInbox}><X size={16} className="text-purple-400 hover:text-purple-600" /></button>}
-
                     </div>
                     <div className="p-4 border-b border-gray-100 dark:border-slate-800">
                         <button
@@ -164,67 +187,75 @@ export default function TimelineView({ tasks, onTaskClick, onDeleteTask, onUpdat
                         )}
                     </div>
                 </div>
-            )}
+            </>
+        )}
 
-            <div className="flex-1 flex flex-col p-6 h-full overflow-hidden">
-                <div className="flex items-center justify-between mb-6 shrink-0">
-                    <div className="flex items-center gap-4">
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="flex-1 flex flex-col p-4 sm:p-6 h-full overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 shrink-0 gap-4">
+                    <div className="flex items-center gap-4 justify-between sm:justify-start">
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
                             {timelineScale === 'WEEK'
                                 ? `Week of ${currentCalendarDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
-                                : currentCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                : timelineScale === 'DAY'
+                                    ? currentCalendarDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+                                    : currentCalendarDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                         </h3>
-                        <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-lg">
+                        <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-lg shrink-0">
                             <button
                                 onClick={() => setTimelineScale('MONTH')}
-                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timelineScale === 'MONTH' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all ${timelineScale === 'MONTH' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 Month
                             </button>
                             <button
                                 onClick={() => setTimelineScale('WEEK')}
-                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timelineScale === 'WEEK' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all ${timelineScale === 'WEEK' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 Week
                             </button>
                             <button
                                 onClick={() => setTimelineScale('DAY')}
-                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timelineScale === 'DAY' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all ${timelineScale === 'DAY' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 Day
                             </button>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => timelineScale === 'MONTH' ? changeMonth(-1) : timelineScale === 'WEEK' ? changeWeek(-1) : changeDay(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full"><ChevronLeft size={18} /></button>
-                        <button onClick={() => timelineScale === 'MONTH' ? changeMonth(1) : timelineScale === 'WEEK' ? changeWeek(1) : changeDay(1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full"><ChevronRight size={18} /></button>
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <button onClick={() => timelineScale === 'MONTH' ? changeMonth(-1) : timelineScale === 'WEEK' ? changeWeek(-1) : changeDay(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full outline-none"><ChevronLeft size={18} /></button>
+                        <button onClick={() => timelineScale === 'MONTH' ? changeMonth(1) : timelineScale === 'WEEK' ? changeWeek(1) : changeDay(1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full outline-none"><ChevronRight size={18} /></button>
                     </div>
                 </div>
 
                 <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden flex flex-col relative">
 
+                    {/* WEEK VIEW ... (rest of the code follows) */}
+
                     {/* WEEK VIEW */}
                     {timelineScale === 'WEEK' && (
                         <div className="flex flex-col h-full">
-                            <div className="grid grid-cols-7 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50">
-                                {getWeekDays(currentCalendarDate).map((day, i) => {
-                                    const isToday = new Date().toDateString() === day.toDateString();
-                                    return (
-                                        <div key={i} className={`p-3 text-center border-r border-gray-200 dark:border-slate-800 last:border-0 ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
-                                            <div className={`text-xs font-bold uppercase mb-1 ${isToday ? 'text-blue-600' : 'text-gray-500'}`}>
-                                                {day.toLocaleDateString(undefined, { weekday: 'short' })}
+                            <div className="overflow-x-auto overflow-y-hidden">
+                                <div className="grid grid-cols-7 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900/50 min-w-[600px]">
+                                    {getWeekDays(currentCalendarDate).map((day, i) => {
+                                        const isToday = new Date().toDateString() === day.toDateString();
+                                        return (
+                                            <div key={i} className={`p-2 sm:p-3 text-center border-r border-gray-200 dark:border-slate-800 last:border-0 ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}>
+                                                <div className={`text-[10px] font-bold uppercase mb-1 ${isToday ? 'text-blue-600' : 'text-gray-500'}`}>
+                                                    {day.toLocaleDateString(undefined, { weekday: 'short' })}
+                                                </div>
+                                                <div className={`text-base sm:text-lg font-bold ${isToday ? 'text-blue-700' : ''}`}>
+                                                    {day.getDate()}
+                                                </div>
                                             </div>
-                                            <div className={`text-lg font-bold ${isToday ? 'text-blue-700' : ''}`}>
-                                                {day.getDate()}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })}
+                                </div>
                             </div>
-                            <div className="flex-1 grid grid-cols-7 overflow-y-auto">
+                            <div className="flex-1 overflow-auto">
+                                <div className="grid grid-cols-7 min-w-[600px] min-h-full">
                                 {getWeekDays(currentCalendarDate).map((day, i) => {
                                     const dateStr = formatDate(day);
-                                    const dayTasks = tasks.filter(t => t.deadline === dateStr);
+                                    const dayTasks = tasks.filter(t => t.deadline?.split('T')[0] === dateStr);
                                     const isToday = new Date().toDateString() === day.toDateString();
 
                                     return (
@@ -260,6 +291,7 @@ export default function TimelineView({ tasks, onTaskClick, onDeleteTask, onUpdat
                                         </div>
                                     )
                                 })}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -384,95 +416,151 @@ export default function TimelineView({ tasks, onTaskClick, onDeleteTask, onUpdat
 
                     {/* DAY SCHEDULE VIEW */}
                     {timelineScale === 'DAY' && (
-                        <div className="flex h-full">
-                            {/* Timeline Sidebar (Hours) */}
-                            <div className="w-16 border-r border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 flex flex-col py-6 gap-12 text-xs text-gray-400 font-mono items-center shrink-0">
-                                <div>08:00</div>
-                                <div>10:00</div>
-                                <div>12:00</div>
-                                <div>14:00</div>
-                                <div>16:00</div>
-                                <div>18:00</div>
-                                <div>20:00</div>
-                            </div>
-
-                            {/* Main Drop Area */}
-                            <div
-                                className="flex-1 p-6 overflow-y-auto relative bg-white dark:bg-slate-950"
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDropOnDate(e, formatDate(currentCalendarDate))}
-                            >
-                                {/* Current Day Header */}
-                                <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-950 z-10">
-                                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex flex-col items-center justify-center text-blue-700 dark:text-blue-400">
-                                        <span className="text-xs font-bold uppercase">{currentCalendarDate.toLocaleDateString(undefined, { weekday: 'short' })}</span>
-                                        <span className="text-lg font-bold leading-none">{currentCalendarDate.getDate()}</span>
+                        <div className="flex-1 overflow-y-auto relative bg-white dark:bg-slate-950">
+                            {/* Unscheduled Tasks for Day Banner - Sticky at the very top of scroll */}
+                            {tasks.filter(t => t.deadline?.split('T')[0] === formatDate(currentCalendarDate) && (!t.start_time || !t.end_time)).length > 0 && (
+                                <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm p-3 border-b border-gray-200 dark:border-slate-800 flex gap-2 overflow-x-auto shadow-sm">
+                                    <div className="flex items-center gap-2 mr-4 shrink-0">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Plan Today</span>
                                     </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Daily Schedule</h2>
-                                        <p className="text-sm text-gray-500">Drag tasks here to schedule for today</p>
+                                    {tasks.filter(t => t.deadline?.split('T')[0] === formatDate(currentCalendarDate) && (!t.start_time || !t.end_time)).map(t => (
+                                        <div
+                                            key={t.t_id}
+                                            onClick={() => onTaskClick(t)}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, t.t_id)}
+                                            className="shrink-0 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg text-xs font-semibold text-blue-700 dark:text-blue-300 cursor-grab hover:scale-105 transition-all shadow-sm"
+                                        >
+                                            {t.name}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="flex min-h-full relative" style={{ height: '1920px' }}>
+                                {/* Timeline Sidebar (Hours) */}
+                                <div className="w-20 border-r border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/10 flex flex-col shrink-0 pointer-events-none">
+                                    {Array.from({ length: 24 }).map((_, i) => (
+                                        <div key={i} className="h-20 border-b border-gray-100 dark:border-slate-800/30 relative">
+                                            <span className="absolute -top-2.5 left-0 right-0 text-center text-[10px] font-bold font-mono text-gray-400">
+                                                {String(i).padStart(2, '0')}:00
+                                            </span>
+                                        </div>
+                                    ))}
+                                    <div className="h-0 relative">
+                                        <span className="absolute -top-2.5 left-0 right-0 text-center text-[10px] font-bold font-mono text-gray-400">
+                                            24:00
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4 pl-4 border-l-2 border-blue-100 dark:border-slate-800 ml-3">
-                                    {tasks.filter(t => t.deadline === formatDate(currentCalendarDate)).map(t => (
+                                {/* Main Grid Area */}
+                                <div
+                                    className="flex-1 relative"
+                                    onDragOver={handleDragOverGrid}
+                                    onDrop={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const y = e.clientY - rect.top;
+                                        // Calculate time based on drop position relative to the grid start
+                                        const hour = Math.floor(y / 80);
+                                        const minute = Math.floor(((y % 80) / 80) * 60);
+                                        const snappedMinute = Math.round(minute / 15) * 15;
+                                        const timeStr = `${String(hour % 24).padStart(2, '0')}:${String(snappedMinute % 60).padStart(2, '0')}`;
+
+                                        const t_id = Number(e.dataTransfer.getData("t_id"));
+                                        if (t_id) {
+                                            const endHour = snappedMinute >= 45 ? hour + 2 : hour + 1;
+                                            const endTimeStr = `${String(endHour % 24).padStart(2, '0')}:${String(snappedMinute % 60).padStart(2, '0')}`;
+                                            onUpdateTask(t_id, {
+                                                deadline: formatDate(currentCalendarDate),
+                                                start_time: timeStr,
+                                                end_time: endTimeStr
+                                            });
+                                        }
+                                        setDropIndicator(null);
+                                    }}
+                                >
+                                    {/* Grid Lines */}
+                                    <div className="absolute inset-0 pointer-events-none">
+                                        {Array.from({ length: 24 }).map((_, i) => (
+                                            <div key={i} className="h-20 border-b border-gray-100 dark:border-slate-800/30 w-full relative">
+                                                {/* 30min subtle line */}
+                                                <div className="absolute top-10 left-0 right-0 border-b border-gray-50 dark:border-slate-800/10 w-full border-dashed"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Drop Indicator / Preview */}
+                                    {dropIndicator && (
                                         <div
-                                            key={t.t_id}
-                                            className="relative group"
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, t.t_id)}
+                                            className="absolute left-2 right-2 rounded-lg bg-blue-500/10 border-2 border-dashed border-blue-500/50 z-30 flex items-center justify-center transition-all duration-75 pointer-events-none"
+                                            style={{ top: `${dropIndicator.top}px`, height: '80px' }}
                                         >
-                                            {/* Dot on line */}
-                                            <div className={`absolute -left-[21px] top-4 w-3 h-3 rounded-full border-2 border-white dark:border-slate-950 shadow-sm
-                                                ${t.status === 'DONE' ? 'bg-green-500' : t.priority === 'HIGH' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
-
-                                            <div
-                                                onClick={() => onTaskClick(t)}
-                                                className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 p-4 rounded-xl shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing flex justify-between items-center"
-                                            >
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider
-                                                            ${t.priority === 'HIGH' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
-                                                            {t.priority}
-                                                        </span>
-                                                        {t.parent_task_id && <span className="text-xs text-gray-400 flex items-center"><CornerDownRight size={10} className="mr-1" /> Subtask</span>}
-                                                    </div>
-                                                    <h4 className={`text-sm font-semibold ${t.status === 'DONE' ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}`}>{t.name}</h4>
-                                                </div>
-
-                                                <div className="flex items-center gap-3">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); onUpdateTask(t.t_id, { status: t.status === 'DONE' ? 'TODO' : 'DONE' }); }}
-                                                        className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors
-                                                        ${t.status === 'DONE' ? 'bg-green-100 border-green-200 text-green-600' : 'border-gray-200 hover:bg-gray-50 dark:border-slate-700'}`}
-                                                    >
-                                                        <CheckCircle2 size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); onDeleteTask(t.t_id); }}
-                                                        className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {tasks.filter(t => t.deadline === formatDate(currentCalendarDate)).length === 0 && (
-                                        <div className="py-12 flex flex-col items-center justify-center text-center border-2 border-dashed border-gray-100 dark:border-slate-800 rounded-xl bg-gray-50/50 dark:bg-slate-900/50">
-                                            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mb-3 text-gray-400">
-                                                <Calendar size={20} />
-                                            </div>
-                                            <p className="text-sm font-medium text-gray-900 dark:text-white">No tasks scheduled</p>
-                                            <p className="text-xs text-gray-500 max-w-[200px] mt-1">Drag tasks from the Inbox on the left to schedule them for today.</p>
+                                            <span className="text-blue-600 dark:text-blue-400 text-[10px] font-black bg-white dark:bg-slate-900 px-2 py-0.5 rounded shadow-sm">
+                                                Schedule at {dropIndicator.time}
+                                            </span>
                                         </div>
                                     )}
+
+                                    {/* Current Time Indicator */}
+                                    {new Date().toDateString() === currentCalendarDate.toDateString() && (
+                                        <div
+                                            className="absolute left-0 right-0 border-t-2 border-red-500 z-30 flex items-center pointer-events-none"
+                                            style={{ top: `${(new Date().getHours() * 80) + (new Date().getMinutes() / 60 * 80)}px` }}
+                                        >
+                                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1.5 shadow-sm"></div>
+                                        </div>
+                                    )}
+
+                                    {/* Tasks */}
+                                    <div className="relative w-full h-full">
+                                        {tasks.filter(t => t.deadline?.split('T')[0] === formatDate(currentCalendarDate)).map(t => {
+                                            if (!t.start_time || !t.end_time) return null;
+
+                                            const [sH, sM] = t.start_time.split(':').map(Number);
+                                            const [eH, eM] = t.end_time.split(':').map(Number);
+
+                                            const top = (sH * 80) + (sM / 60 * 80);
+                                            let height = ((eH === 0 && eM === 0 ? 24 : eH) * 80 + (eM / 60 * 80)) - top;
+                                            if (height < 40) height = 40;
+
+                                            return (
+                                                <div
+                                                    key={t.t_id}
+                                                    draggable
+                                                    onDragStart={(e) => handleDragStart(e, t.t_id)}
+                                                    onClick={() => onTaskClick(t)}
+                                                    className={`absolute left-4 right-4 rounded-xl border-l-[6px] p-4 shadow-md cursor-grab active:cursor-grabbing hover:shadow-xl hover:-translate-y-0.5 transition-all z-20 overflow-hidden group
+                                                        ${t.status === 'DONE' ? 'bg-gray-50/95 border-gray-300 text-gray-400 dark:bg-slate-800/95 dark:border-slate-700' :
+                                                            t.priority === 'HIGH' ? 'bg-red-50 border-red-500 text-red-900 dark:bg-red-900/20 dark:border-red-600 dark:text-red-100' :
+                                                                t.priority === 'MEDIUM' ? 'bg-amber-50 border-amber-500 text-amber-900 dark:bg-amber-900/20 dark:border-amber-600 dark:text-amber-100' :
+                                                                    'bg-blue-50 border-blue-500 text-blue-900 dark:bg-blue-900/20 dark:border-blue-600 dark:text-blue-100'}`}
+                                                    style={{ top: `${top}px`, height: `${height}px` }}
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-[10px] font-black uppercase tracking-wider opacity-60 mb-1.5">{t.start_time} - {t.end_time}</div>
+                                                            <h4 className={`text-sm font-black leading-tight truncate ${t.status === 'DONE' ? 'line-through' : ''}`}>{t.name}</h4>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); onUpdateTask(t.t_id, { status: t.status === 'DONE' ? 'TODO' : 'DONE' }); }}
+                                                                className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${t.status === 'DONE' ? 'bg-green-500 border-green-500 text-white' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 hover:border-blue-500'}`}
+                                                            >
+                                                                {t.status === 'DONE' && <CheckCircle2 size={12} strokeWidth={3} />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     )}
+
                 </div>
             </div>
         </div>

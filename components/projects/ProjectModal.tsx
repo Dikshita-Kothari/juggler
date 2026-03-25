@@ -17,7 +17,7 @@ export default function ProjectModal({
 
     if (!isOpen) return null;
 
-    const handleSaveProject = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSaveProject = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const name = formData.get("name") as string;
@@ -25,21 +25,9 @@ export default function ProjectModal({
         const deadline = formData.get("deadline") as string;
 
         if (projectToEdit) {
-            updateProject({ ...projectToEdit, name, description: desc, deadline });
-            showToast("Project updated");
+            await updateProject({ ...projectToEdit, name, description: desc, deadline });
         } else {
-            const newPid = Math.max(0, ...projects.map(p => p.p_id)) + 1;
-            const newProject: Project = {
-                p_id: newPid,
-                u_id: currentUser.u_id,
-                name,
-                description: desc,
-                deadline,
-                created_at: new Date().toISOString(),
-                is_deleted: false
-            };
-            addProject(newProject);
-            showToast("Project created successfully");
+            await addProject(name, desc, deadline);
         }
         onClose();
     };
@@ -59,7 +47,7 @@ export default function ProjectModal({
                     </div>
                     <div>
                         <label className="text-sm font-medium block mb-1">Deadline</label>
-                        <input type="date" name="deadline" defaultValue={projectToEdit?.deadline} className="w-full border rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+                        <input type="date" name="deadline" defaultValue={projectToEdit?.deadline ? projectToEdit.deadline.split('T')[0] : ''} className="w-full border rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
